@@ -106,6 +106,32 @@ Ask two questions:
 
 Use OpenSpec to structure a persistence migration from in-memory to MySQL, then implement it.
 
+### The OpenSpec Workflow
+
+Each change follows this cycle. Follow these steps — don't skip ahead.
+
+1. **Create a branch** from main
+   git checkout -b <your-branch-name>
+
+2. **Propose** — describe what you want to change
+   /opsx-propose <change-name>
+   → Review the generated artifacts (proposal, design, tasks)
+   → Edit if needed — you are the author, AI is the typist
+   → Implementation will be as good as the context you provide in the spec
+   → Commit the artifacts
+
+3. **Apply** — let AI implement the tasks
+   /opsx-apply <change-name>
+   → Review each task's output before moving on
+   → Run ./gradlew build to verify
+   → Commit when all tasks are done
+
+4. **Archive** — finalize the change
+   /opsx-archive <change-name>
+   → Commit the archive
+
+   Open a PR to main when ready.
+
 ### Phase 2a — Propose the change (15 min)
 
 Create a new OpenSpec change:
