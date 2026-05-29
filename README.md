@@ -1,26 +1,41 @@
-# Workshop: Spec-Driven Development vs Vibe Coding
-**Duration:** Half day (~3.5h) · **Stack:** Java · Spring Boot · Gradle · OpenAPI 3.1 · openapi-generator · Testcontainers
+# OpenSpec Workshop: Spec-Driven Persistence Migrations
+**Duration:** Half day (~3.5h) · **Stack:** Java · Spring Boot · Gradle · Testcontainers
+
+---
+
+## What is OpenSpec?
+
+[OpenSpec](https://openspec.dev) is a CLI tool and set of opencode skills that bring structure to AI-assisted development. Instead of ad-hoc prompts, you work through a defined workflow: **explore** the problem, **propose** a change (producing a proposal, design, and task list), **apply** the tasks, and **archive** the completed change. The specs and decisions are captured in files under `openspec/`, giving AI persistent context across sessions.
+
+The four commands you'll use today:
+
+| Command | Purpose |
+|---------|---------|
+| `/opsx-explore` | Think through a problem before committing to a direction |
+| `/opsx-propose` | Create a change: generates proposal, design, and tasks |
+| `/opsx-apply` | Implement the tasks from a change |
+| `/opsx-archive` | Finalize and archive a completed change |
+
+Install: [https://openspec.dev](https://openspec.dev)
 
 ---
 
 ## Narrative Arc
 
-> Act 1 — *"Just ask the AI"* → capable but inconsistent  
-> Act 2 — *"Give the AI a contract"* → MySQL persistence, spec-owned  
-> Act 3 — *"The spec remembers"* → DynamoDB refactor, AI-driven from the existing spec
+> Act 1 — *"Just ask the AI"* → capable but inconsistent
+> Act 2 — *"Give the AI a structured change"* → MySQL migration via OpenSpec
+> Act 3 — *"The specs remember"* → DynamoDB migration, building on archived context
 
 The domain (Employee CRUD) never changes. The persistence does. That's the point.
 
 ---
 
-## Prerequisites (attendees bring)
+## Prerequisites
+
 - JDK 21+, Gradle 8+, Docker (running)
 - opencode installed and working
+- `openspec` CLI installed ([install guide](https://openspec.dev))
 - Their usual editor/IDE
-
-You provide:
-- The skeleton project (zip / shared repo)
-- This document
 
 ---
 
@@ -30,10 +45,10 @@ You provide:
 |------|---------|
 | 0:00 | Framing talk (20 min) |
 | 0:20 | **Act 1** — Vibe coding (30 min) |
-| 0:50 | Debrief Act 1 + mini-lecture: OpenAPI 3.1 (25 min) |
-| 1:15 | **Act 2** — Spec v1: in-memory → MySQL (75 min) |
-| 2:30 | Debrief Act 2 (15 min) |
-| 2:45 | **Act 3** — Spec v2: MySQL → DynamoDB (30 min) |
+| 0:50 | Debrief Act 1 (15 min) |
+| 1:05 | **Act 2** — MySQL migration with OpenSpec (80 min) |
+| 2:25 | Debrief Act 2 (15 min) |
+| 2:40 | **Act 3** — DynamoDB migration with OpenSpec (35 min) |
 | 3:15 | Final discussion (15 min) |
 
 ---
@@ -43,164 +58,93 @@ You provide:
 No hands-on. Cover:
 
 - What "vibe coding" means in practice: prompt → working code → ship
-- What spec-driven development means: define the contract first, generate/implement against it
-- Why the distinction matters for backend teams: contracts between services, teams, consumers
+- What spec-driven development means: define the change formally, let AI implement against it
+- Why the distinction matters for backend teams: when you change infrastructure, you need precision — not hoping the AI remembers what the code does
 - The two claims you'll prove today:
-    1. A spec makes AI output more predictable and correct
-    2. A spec acts as persistent memory — it lets AI drive non-trivial refactors it would otherwise get wrong
-
-Do **not** explain OpenAPI syntax yet. That comes after Act 1.
+    1. A structured change makes AI output more predictable and correct — even for something as routine as test generation
+    2. Captured specs act as persistent memory — AI can drive non-trivial refactors across sessions without losing context
+- Quick demo of the OpenSpec workflow: `/opsx-propose` → review artifacts → `/opsx-apply`
 
 ---
 
 ## Act 1 — Vibe Coding (30 min)
 
 ### Goal
-Experience what AI-assisted development looks like with no contract.
+
+Experience what AI-assisted test generation looks like with no structured change.
 
 ### Setup
+
 Attendees open the skeleton project. Walk them through it briefly (5 min):
 - `Employee.java` — the POJO, fully written
 - `EmployeeController.java` — all five operations stubbed, in-memory `Map` persistence
 - `EmployeeService.java` — delegates to an in-memory `EmployeeRepository` interface
-- Tests do not exist yet
+- No tests exist yet
 
 Everything compiles and runs. `GET /employees` returns an empty list.
 
 ### The exercise
-> "Use opencode to add whatever you think is missing or could be better. Improve the API. Make it production-ready. You have 25 minutes."
 
-No further instructions. They prompt freely.
+> "Use opencode to write unit tests for this project. You have 25 minutes."
 
-### What to observe (you circulate)
-- Do they add validation? What field names do they use for error responses?
-- Do different people produce different response shapes for the same error case?
-- Does anyone add pagination? If so, what does the response envelope look like?
-- Do any tests get written? If so, what do they test against?
+No further instructions. They prompt freely — some will ask for controller tests, some for service tests, some for both. Let them discover what they get.
 
-### Debrief (part of the 25 min mini-lecture slot)
-Ask two questions before moving on:
-- "Show me your 404 response body. Now show your neighbour's."
-- "If we had to write a client that works against both — what breaks?"
+### Debrief (15 min)
 
-**Point to land:** Fast, capable, inconsistent. Every run produces a different API surface. A client team would be blocked. The AI needs a contract.
+Ask two questions:
+
+- "What testing approach did you end up with? MockMvc? TestRestTemplate? Plain unit tests with mocks?"
+- "Compare your test structure with your neighbour's. Could you swap implementations and keep the tests passing?"
+
+**Point to land:** Fast, capable, inconsistent. Every run produces a different testing strategy and different coverage. When the persistence layer changes, these tests will break in unpredictable ways. The AI needs a structured way to work — one that separates "what to test" from "how to implement." That's what OpenSpec provides.
 
 ---
 
-## Mini-Lecture: OpenAPI 3.1 Concepts (15 min)
-
-Keep it tight. Only what they need for Act 2.
-
-### Top-level structure
-```
-openapi · info · paths · components
-```
-
-### Paths and operations
-```yaml
-paths:
-  /employees/{id}:
-    get:
-      operationId: getEmployee
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Employee'
-        '404':
-          $ref: '#/components/responses/NotFound'
-```
-- `operationId` → Java method name. Missing = ugly generated code.
-- Path parameters go in `parameters`, not in the path string alone.
-
-### Schemas
-```yaml
-components:
-  schemas:
-    Employee:
-      type: object
-      required: [firstName, lastName, email]
-      properties:
-        id:
-          type: integer
-          format: int64
-        firstName:
-          type: string
-        email:
-          type: string
-          format: email
-```
-- `required` is a list on the object, not a property flag.
-- Two models: `Employee` (read, has `id`) and `EmployeeRequest` (write, no `id`).
-
-### Reusable responses
-```yaml
-components:
-  responses:
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-```
-Define `NotFound`, `BadRequest` once, `$ref` everywhere.
-
-That's all they need. Move on.
-
----
-
-## Act 2 — Spec v1: In-Memory → MySQL (75 min)
+## Act 2 — MySQL Migration with OpenSpec (80 min)
 
 ### Goal
-Write `employee-api-v1.yaml`, generate the server stubs, swap the persistence layer from in-memory to MySQL, and verify with Testcontainers.
 
-### Phase 2a — Write the spec with opencode (20 min)
+Use OpenSpec to structure a persistence migration from in-memory to MySQL, then implement it.
 
-They create `src/main/resources/openapi/employee-api-v1.yaml`.
+### Phase 2a — Propose the change (15 min)
 
-Starter prompt to give them:
-> "Write an OpenAPI 3.1 spec for the Employee API in this project. Employees have id (int64), firstName, lastName, email (format: email), and department. Full CRUD: list all, create, get by id, update by id, delete by id. Separate EmployeeRequest schema (no id) for write operations. Reusable ErrorResponse schema with code (integer) and message (string). Reusable 404 and 400 responses in components. All operations must have an operationId."
+Create a new OpenSpec change:
 
-**Key instruction you give verbally:** Every time opencode produces YAML, read it before accepting. You are the author. opencode is the typist.
-
-They then iterate — add a `department` query param to `GET /employees`, adjust status codes, add field descriptions. Each change is a deliberate spec decision.
-
-### Phase 2b — Generate stubs (10 min)
-
-```bash
-./gradlew openApiGenerate
+```
+/opsx-propose mysql-migration
 ```
 
-The `build.gradle` is already wired. They inspect the generated interface and POJOs under `build/generated/`. Then make `EmployeeController` implement the generated interface — replacing the existing stub signatures.
+When prompted, describe the change:
+> "Migrate the Employee persistence layer from in-memory HashMap to MySQL using JPA. Add @Entity to Employee, create a JPA repository, wire it into the service, add datasource config, and write integration tests with Testcontainers."
 
-### Phase 2c — MySQL persistence (30 min)
+Review the generated artifacts:
+- `openspec/changes/mysql-migration/proposal.md` — what and why
+- `openspec/changes/mysql-migration/design.md` — how (JPA, repository pattern, Testcontainers)
+- `openspec/changes/mysql-migration/tasks.md` — step-by-step implementation
 
-Replace the in-memory `EmployeeRepository` with a JPA implementation.
+Edit the artifacts if needed. The proposal is the contract between you and the AI.
 
-They need to:
-- Add `@Entity` to `Employee`, add `@Id @GeneratedValue`
+### Phase 2b — Implement the change (40 min)
+
+```
+/opsx-apply mysql-migration
+```
+
+opencode works through the tasks. The key implementation steps:
+
+**JPA setup:**
+- Add `@Entity` and `@Id @GeneratedValue` to `Employee`
 - Create `EmployeeJpaRepository extends JpaRepository<Employee, Long>`
-- Implement `EmployeeService` methods against the JPA repository
-- Add `application.properties` datasource config (point to localhost for now — Testcontainers will override in tests)
+- Update `EmployeeService` to use the JPA repository
+- Add `application.properties` datasource config
 
-Dependencies are already in `build.gradle`:
+Dependencies already in `build.gradle` (uncomment when ready):
 ```
 spring-boot-starter-data-jpa
 mysql-connector-j
 ```
 
-### Phase 2d — Tests with Testcontainers (15 min)
-
-They write `EmployeeControllerIT.java`:
+**Integration tests:**
 
 ```java
 @SpringBootTest(webEnvironment = RANDOM_PORT)
@@ -233,52 +177,59 @@ Tests must cover at least: create → get, get unknown → 404, delete → get �
 ./gradlew test
 ```
 
----
+### Phase 2c — Archive (5 min)
 
-## Debrief Act 2 (15 min)
+Once tests are green:
+
+```
+/opsx-archive mysql-migration
+```
+
+The change moves to `openspec/changes/archive/`. The artifacts are preserved — AI can reference them in future sessions.
+
+### Debrief (15 min)
 
 Questions:
-- "What did opencode get right in the spec on the first prompt? What did you have to correct?"
-- "What happened when you changed a field name in the spec and re-ran the generator?"
+- "What did opencode get right in the proposal on the first pass? What did you correct?"
+- "What happened when you changed a task description and re-ran apply?"
 - "What does the compiler error tell you that a test wouldn't?"
 
 **Points to land:**
-- The spec is now the source of truth. The compiler enforces the contract, not discipline.
-- opencode wrote the YAML correctly *because* it had precise requirements to work from.
-- The test verifies behaviour against a real database — the spec verified the shape.
+- The proposal is now the source of truth. The compiler enforces the contract, not discipline.
+- opencode wrote the implementation correctly *because* the tasks were precise.
+- The test verifies behaviour against a real database — the proposal verified the approach.
 
 ---
 
-## Act 3 — Spec v2: MySQL → DynamoDB (30 min)
+## Act 3 — DynamoDB Migration with OpenSpec (35 min)
 
 ### Goal
-Use the existing spec as context to drive a full persistence refactor to DynamoDB on LocalStack — with opencode doing the heavy lifting.
 
-### The setup (5 min, you narrate)
+Use the archived MySQL change as context to drive a second persistence migration — this time to DynamoDB.
 
-> "We have a working, spec-documented API. The business wants to migrate to DynamoDB. In a vibe-coding world, you'd prompt opencode with a vague description and hope it remembers what the API does. In an SDD world, the spec *is* the memory. We write a second spec that says: same API, new persistence contract."
+### Phase 3a — Propose the change (10 min)
 
-They create `src/main/resources/openapi/employee-api-v2.yaml`.
+```
+/opsx-propose dynamodb-migration
+```
 
-This spec is **identical to v1** except:
-- `info.version: 2.0.0`
-- Add an `x-persistence` extension field at the info level: `x-persistence: dynamodb`
-- Add a description note on each operation referencing the DynamoDB access pattern (e.g. `get by partition key id`)
+Describe the change:
+> "Migrate the Employee persistence layer from MySQL/JPA to DynamoDB using the AWS SDK v2. Use LocalStack for local development. Replace EmployeeJpaRepository with a DynamoDbEmployeeRepository. Keep all controller and service code unchanged. Update tests to use LocalStackContainer."
 
-The extensions aren't used by the generator — they're **documentation for opencode**.
+opencode can read the archived `mysql-migration` change for context — it knows what was done before and why.
 
-### The opencode prompt (10 min)
+### Phase 3b — Implement the change (20 min)
 
-Attendees give opencode this prompt (you display it on screen):
-> "I have an Employee REST API currently using MySQL + JPA. The spec is in `employee-api-v2.yaml`. Refactor the persistence layer to use DynamoDB via the AWS SDK v2. Use LocalStack for local development. Replace `EmployeeJpaRepository` with a `DynamoDbEmployeeRepository`. Keep all controller and service code unchanged. Update the Testcontainers test to use a LocalStack container instead of MySQL."
+```
+/opsx-apply dynamodb-migration
+```
 
-They watch and guide. Intervene when opencode drifts from the spec.
+Key implementation steps:
 
-### What opencode needs to produce (15 min to review + fix)
 - Remove `spring-boot-starter-data-jpa` and `mysql-connector-j` from `build.gradle`
 - Add `software.amazon.awssdk:dynamodb` and `org.testcontainers:localstack`
-- `DynamoDbEmployeeRepository` implementing the same interface
-- Updated `EmployeeControllerIT` using `LocalStackContainer`
+- Create `DynamoDbEmployeeRepository` implementing the same `EmployeeRepository` interface
+- Update `EmployeeControllerIT` to use `LocalStackContainer`
 
 ```java
 @Container
@@ -291,10 +242,17 @@ static LocalStackContainer localstack =
 ./gradlew test
 ```
 
-Same tests. Same spec. Different database. Green.
+Same tests. Same interface. Different database. Green.
 
-### The point (you state it explicitly)
-> "opencode didn't need to re-understand the API. The spec told it what the contract was. It only had to solve the persistence problem — which is what we actually wanted."
+### Phase 3c — Archive (5 min)
+
+```
+/opsx-archive dynamodb-migration
+```
+
+### The point
+
+> "opencode didn't need to re-understand the codebase. The archived MySQL change told it what the persistence layer looked like. It only had to solve the DynamoDB problem — which is what we actually wanted."
 
 ---
 
@@ -305,19 +263,8 @@ Three questions:
 1. **"When would you still vibe-code?"**
    Let them draw the line. Prototypes, throwaway scripts, one-consumer internal tools are reasonable answers.
 
-2. **"Who owns the spec in your team?"**
-   This is a process question. The spec is a communication artefact. It lives in the repo, it's reviewed in PRs, it's versioned. Who writes the first draft? Who approves changes?
+2. **"Who owns the specs in your team?"**
+   The specs live in `openspec/`, versioned in git. Who writes the first draft? Who approves changes? This is a process question.
 
 3. **"What changes about how you prompt opencode going forward?"**
-   Expected landing: lead with the spec, not with a description. The spec is the most precise prompt you can give for any API-related task.
-
----
-
-## What This Workshop Deliberately Does Not Cover
-- Security schemes / OAuth flows
-- Webhooks
-- Polymorphism (`oneOf`, `anyOf`)
-- Spec linting (Spectral)
-- Consumer-driven contract testing (Pact)
-
-These are follow-up workshops. Don't dilute the message today.
+   Expected landing: lead with a structured change, not with a description. The proposal is the most precise prompt you can give for any infrastructure task.
