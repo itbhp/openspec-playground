@@ -191,22 +191,28 @@ If they ask "how do I know what was done before", the answer is: *you don't. Tha
 
 ---
 
-## Final Discussion
+## Takeaways
 
-1. **"When would you still vibe-code?"**
+* **"When would you still vibe-code?"**
    Prototypes, throwaway scripts, one-consumer internal tools. Let them draw the line.
 
-2. **"Who owns the specs in your team?"**
-   The specs live in `openspec/`, versioned in git, reviewed in PRs. Who writes the first draft? Who approves changes?
-
-3. **"What changes about how you prompt opencode going forward?"**
+* **"What changes about how you prompt opencode going forward?"**
    Expected landing: lead with a structured change. The proposal is the most precise context you can give AI for any infrastructure task.
 
-4. **"Would you do Act 3 differently if you were starting from scratch?"**
+* **"Would you do Act 3 differently if you were starting from scratch?"**
    (This is the meta question — they now have the full arc.)
 
-5. **"What happens if someone refactors the contract without updating the specs?"**
+* **"What happens if someone refactors the contract without updating the specs?"**
    The code is the runtime truth. The spec is the design-time truth. **A PR that changes code but not the spec is incomplete.**
+
+* **What does the hot partition moment in Act 3 reveal?**
+   It reveals that the spec will not catch all issues, the human review of the specs will.
+
+* **Vibe coding fails silently and unpredictably, Spec-driven fails loudly and traceably, Confluence docs and manual code fail slowly and expensively.**
+  * This is the honest conclusion. SDD is not the cure, failure modes are different. 
+  * In Vibe Code you will have to guess why it fails.
+  * In Confluece+manual code most likely you are reading code that no longer exists. 
+  * In Spec you have a paper trail. That 03:00 Sunday incident has a starting point. You know what changed, when, and why it was approved. You get to the problem faster.
 
 ---
 
