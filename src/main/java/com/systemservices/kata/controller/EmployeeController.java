@@ -12,8 +12,6 @@ import static org.springframework.http.HttpStatus.*;
 @RestController
 @RequestMapping("/employees")
 public class EmployeeController {
-  // NOTE: after openApiGenerate, this class will implement the generated interface
-  // and this @RequestMapping will be removed. For now it's a working stub.
 
   private final EmployeeService svc;
 
