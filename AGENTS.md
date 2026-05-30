@@ -16,7 +16,7 @@ Stack: Java 21, Spring Boot 3.4.5, Gradle 9.3 wrapper, Testcontainers.
 ```bash
 ./gradlew bootRun          # Run app (port 8080)
 ./gradlew build            # Compile + test + package
-./gradlew test             # Run tests (none exist yet)
+./gradlew test             # Run tests
 ```
 
 No CI, no Makefile, no task runner. All commands are Gradle-only.
