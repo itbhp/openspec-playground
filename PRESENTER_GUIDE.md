@@ -37,8 +37,6 @@ No hands-on. Cover:
   2. Captured specs act as persistent memory — AI can drive non-trivial refactors across sessions without losing context
 - Quick demo of the OpenSpec workflow: `/opsx-propose` → review artifacts → `/opsx-apply`
 
-**Do not** reference the archived `add-github-workflow` change — it's a CI change, not a persistence migration, and will confuse participants.
-
 ---
 
 ## Act 1 — Vibe Coding
@@ -97,7 +95,7 @@ The prompt participants use:
 - JPA and MySQL dependencies in `build.gradle` are uncommented
 - `application.properties` datasource config is uncommented, including `spring.jpa.hibernate.ddl-auto=update`
 - `InMemoryEmployeeRepository` has `@Repository` removed (bean conflict with two `EmployeeRepository` impls)
-- `openspec/config.yaml` Active persistence: mysql
+- any change to `openspec/config.yaml`? (Active persistence: mysql)
 
 ### Phase 2b — Apply (let them work, walk the room)
 
@@ -207,28 +205,14 @@ If they ask "how do I know what was done before", the answer is: *you don't. Tha
 4. **"Would you do Act 3 differently if you were starting from scratch?"**
    (This is the meta question — they now have the full arc.)
 
----
-
-## Food for Thought
-
-**"What happens if someone refactors the contract without updating the specs?"**
-
-The code is the runtime truth. The spec is the design-time truth. When they drift:
-
-- The spec becomes a liability — next time you use OpenSpec, the AI generates against out-of-date context, producing code that doesn't compile
-- The drift is discovered during proposal review or when `./gradlew build` fails in the apply phase
-- The fix is straightforward: either update the spec to match the new code, or revert the code change if it violated the agreed design
-
-**The risk is skipping the spec update, not the drift itself.** The team that says "we'll update the spec later" is the team that, 6 months on, finds the spec describing a system that no longer exists. At that point the spec is noise, not signal — and you've lost the persistent memory that the whole workflow depends on.
-
-The safeguard: spec reviews are part of the PR process, not a separate ceremony. If a PR modifies code without touching the associated spec, that's a review flag — just like missing tests.
+5. **"What happens if someone refactors the contract without updating the specs?"**
+   The code is the runtime truth. The spec is the design-time truth. **A PR that changes code but not the spec is incomplete.**
 
 ---
 
 ## Notes for the presenter
 
 - The `openspec/` directory and `config.yaml` are pre-configured in the repo. Participants should not need to create them.
-- The archived `add-github-workflow` change is a prop from preparation. Do **not** reference it — it's a CI change, not a persistence migration, and will confuse participants.
 - MySQL and LocalStack images should be pre-pulled by participants (listed in the README prerequisites).
 - If `./gradlew build` takes >2 minutes during an apply phase, participants can run `./gradlew test` for a faster feedback loop once compilation is confirmed.
 - The UUID/Long debate in Act 3 is the best "trap" in the workshop. If it doesn't surface naturally, prompt it. The debate itself is the teaching moment — not the resolution.

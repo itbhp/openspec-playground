@@ -103,8 +103,6 @@ Review the generated artifacts:
 - `openspec/changes/mysql-migration/design.md`
 - `openspec/changes/mysql-migration/tasks.md`
 
-**Note**: any change to `openspec/config.yaml`? (hint → Active persistence: mysql)
-
 **Read them.** You are the author. opencode is the typist. If anything is wrong or missing, edit before moving on. Commit the artifacts.
 
 3. **Apply** — let AI implement the tasks
