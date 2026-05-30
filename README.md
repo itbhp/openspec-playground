@@ -84,9 +84,9 @@ Use OpenSpec to structure a persistence migration from in-memory to MySQL, imple
 
 Follow these steps in order. Do not skip ahead.
 
-1. **Create a branch** from main
+1. **Create a branch** from main, it will be your sandbox for this workshop.
 ```bash
-git checkout -b mysql-migration
+git checkout -b <your-name>
 ```
 
 2. **Propose** — describe what you want to change
@@ -146,7 +146,7 @@ class EmployeeControllerIT {
 /opsx-archive mysql-migration
 ```
 
-Commit the archive. Open a PR to main.
+Commit the archive on your branch.
 
 ---
 
