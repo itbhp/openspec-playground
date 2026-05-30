@@ -4,12 +4,12 @@
 
 Workshop project for teaching **spec-driven development vs vibe coding**. Half-day format (3.5h), three acts:
 - **Act 1** (vibe coding): Improve the API with AI, no spec — experience inconsistency
-- **Act 2** (spec v1): Write OpenAPI 3.1 spec → generate stubs → MySQL via JPA + Testcontainers
+- **Act 2** (spec v1): Write MySQL via JPA + Testcontainers
 - **Act 3** (spec v2): Refactor MySQL → DynamoDB using the spec as "persistent memory"
 
 Domain: Employee CRUD REST API. Persistence changes, domain stays the same.
 
-Stack: Java 21, Spring Boot 3.4.5, Gradle 9.3 wrapper, OpenAPI 3.1, openapi-generator, Testcontainers.
+Stack: Java 21, Spring Boot 3.4.5, Gradle 9.3 wrapper, Testcontainers.
 
 ## Commands
 
@@ -17,7 +17,6 @@ Stack: Java 21, Spring Boot 3.4.5, Gradle 9.3 wrapper, OpenAPI 3.1, openapi-gene
 ./gradlew bootRun          # Run app (port 8080)
 ./gradlew build            # Compile + test + package
 ./gradlew test             # Run tests (none exist yet)
-./gradlew openApiGenerate  # Requires spec at src/main/resources/openapi/employee-api-v1.yaml (does not exist yet)
 ```
 
 No CI, no Makefile, no task runner. All commands are Gradle-only.
@@ -31,14 +30,6 @@ No CI, no Makefile, no task runner. All commands are Gradle-only.
 - Controller: `EmployeeController` at `/employees` with full CRUD
 
 Package: `com.systemservices.kata`
-
-## OpenAPI Codegen (pre-wired, not active)
-
-`build.gradle` has the `org.openapi.generator` plugin configured for Spring interfaces. Two things are commented out:
-1. The `compileJava.dependsOn tasks.openApiGenerate` line (line 63)
-2. The spec file itself (`src/main/resources/openapi/employee-api-v1.yaml`)
-
-When ready: create the spec, uncomment the dependency, and the controller should implement the generated interface (remove hand-written `@RequestMapping` annotations). The controller already has a comment about this transition at line 15.
 
 ## Testing
 

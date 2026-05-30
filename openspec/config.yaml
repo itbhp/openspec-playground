@@ -1,20 +1,38 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: Java 21, Spring Boot 3.4.5, Gradle 9.3, Testcontainers
+  Package root: com.systemservices.kata
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Architecture:
+  - EmployeeRepository is a custom interface (not Spring Data). Every persistence
+    implementation must implement this interface. Controller and service must never
+    be modified during persistence migrations.
+  - EmployeeService is a thin pass-through to the repository. No business logic lives there.
+  - EmployeeController handles HTTP concerns only. No persistence awareness.
+
+  Conventions:
+  - No Lombok, no records. Plain JavaBeans with getters and setters.
+  - No Spring Data repository interfaces exposed beyond the persistence layer.
+    Always wrap with an adapter implementing EmployeeRepository.
+  - Integration tests use Testcontainers with @DynamicPropertySource.
+    Tests must exercise the full HTTP stack (TestRestTemplate, RANDOM_PORT).
+  - Dependencies for inactive phases are commented out in build.gradle, not removed.
+    Uncomment when the phase begins.
+
+  Domain: Employee CRUD REST API. Fields: id (Long), firstName, lastName, email, department.
+  Endpoint base: /employees
+
+  Active persistence: in-memory (InMemoryEmployeeRepository)
+  Planned migrations: MySQL/JPA (Act 2), DynamoDB via AWS SDK v2 (Act 3)
+
+rules:
+  proposal:
+    - Always state explicitly which files must NOT be modified
+    - Include a one-line summary of the active persistence implementation being replaced
+  design:
+    - Include a table of dependencies to add and dependencies to remove
+    - State whether EmployeeRepository interface changes — it almost never should
+  tasks:
+    - Each task must be independently verifiable (compile check or test)
+    - Persistence swap tasks must include: remove old impl, add new impl, update bean wiring, update tests

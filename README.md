@@ -35,7 +35,13 @@ The domain (Employee CRUD) never changes. The persistence does. That's the point
 - JDK 21+, Gradle 8+, Docker (running)
 - opencode installed and working
 - `openspec` CLI installed ([install guide](https://openspec.dev))
-- Their usual editor/IDE
+- Your usual editor/IDE
+- Pre-pull Docker images before the session to avoid cold-pull delays:
+
+```bash
+docker pull mysql:8.0
+docker pull localstack/localstack
+```
 
 ---
 
@@ -61,9 +67,10 @@ No hands-on. Cover:
 - What spec-driven development means: define the change formally, let AI implement against it
 - Why the distinction matters for backend teams: when you change infrastructure, you need precision — not hoping the AI remembers what the code does
 - The two claims you'll prove today:
-    1. A structured change makes AI output more predictable and correct — even for something as routine as test generation
-    2. Captured specs act as persistent memory — AI can drive non-trivial refactors across sessions without losing context
+   1. A structured change makes AI output more predictable and correct
+   2. Captured specs act as persistent memory — AI can drive non-trivial refactors across sessions without losing context
 - Quick demo of the OpenSpec workflow: `/opsx-propose` → review artifacts → `/opsx-apply`
+- Point to `openspec/changes/archive/2026-05-29-add-github-workflow/` as a concrete example of what a completed change looks like — proposal, design, tasks, spec, archive
 
 ---
 
@@ -71,32 +78,32 @@ No hands-on. Cover:
 
 ### Goal
 
-Experience what AI-assisted test generation looks like with no structured change.
+Experience what AI-assisted development looks like with no structured change.
 
 ### Setup
 
-Attendees open the skeleton project. Walk them through it briefly (5 min):
+Walk through the skeleton briefly (5 min):
 - `Employee.java` — the POJO, fully written
-- `EmployeeController.java` — all five operations stubbed, in-memory `Map` persistence
-- `EmployeeService.java` — delegates to an in-memory `EmployeeRepository` interface
-- No tests exist yet
+- `EmployeeController.java` — all five operations stubbed, in-memory persistence
+- `EmployeeService.java` — thin pass-through to `EmployeeRepository`
+- `InMemoryEmployeeRepository.java` — `ConcurrentHashMap` + `AtomicLong`
+- No tests exist
 
 Everything compiles and runs. `GET /employees` returns an empty list.
 
 ### The exercise
 
-> "Use opencode to write unit tests for this project. You have 25 minutes."
+> "Use opencode to write tests that would catch a broken persistence layer. You have 25 minutes."
 
-No further instructions. They prompt freely — some will ask for controller tests, some for service tests, some for both. Let them discover what they get.
+No further instructions. Let them decide what "catch a broken persistence layer" means to them.
 
 ### Debrief (15 min)
 
-Ask two questions:
+- "What did you write — unit tests with mocks, or integration tests against the running app?"
+- "If we swapped `InMemoryEmployeeRepository` for a broken implementation, would your tests fail?"
+- "Compare your test structure with your neighbour's. Same coverage? Same assertions? Same approach?"
 
-- "What testing approach did you end up with? MockMvc? TestRestTemplate? Plain unit tests with mocks?"
-- "Compare your test structure with your neighbour's. Could you swap implementations and keep the tests passing?"
-
-**Point to land:** Fast, capable, inconsistent. Every run produces a different testing strategy and different coverage. When the persistence layer changes, these tests will break in unpredictable ways. The AI needs a structured way to work — one that separates "what to test" from "how to implement." That's what OpenSpec provides.
+**Point to land:** Fast, capable, inconsistent. Every run produces a different testing strategy. When the persistence layer changes in Act 2 and Act 3, tests written this way will break — or worse, silently pass. The AI needs a structured way to work. That's what OpenSpec provides.
 
 ---
 
@@ -104,73 +111,67 @@ Ask two questions:
 
 ### Goal
 
-Use OpenSpec to structure a persistence migration from in-memory to MySQL, then implement it.
+Use OpenSpec to structure a persistence migration from in-memory to MySQL, implement it, and verify with Testcontainers.
 
 ### The OpenSpec Workflow
 
-Each change follows this cycle. Follow these steps — don't skip ahead.
+Follow these steps in order. Do not skip ahead.
 
 1. **Create a branch** from main
-   git checkout -b <your-branch-name>
+```bash
+git checkout -b mysql-migration
+```
 
 2. **Propose** — describe what you want to change
-   /opsx-propose <change-name>
-   → Review the generated artifacts (proposal, design, tasks)
-   → Edit if needed — you are the author, AI is the typist
-   → Implementation will be as good as the context you provide in the spec
-   → Commit the artifacts
+```
+/opsx-propose mysql-migration
+```
+Review the generated artifacts. Edit if needed. Commit them.
 
 3. **Apply** — let AI implement the tasks
-   /opsx-apply <change-name>
-   → Review each task's output before moving on
-   → Run ./gradlew build to verify
-   → Commit when all tasks are done
+```
+/opsx-apply mysql-migration
+```
+Review each task's output. Run `./gradlew build`. Commit when green.
 
 4. **Archive** — finalize the change
-   /opsx-archive <change-name>
-   → Commit the archive
-
-   Open a PR to main when ready.
+```
+/opsx-archive mysql-migration
+```
+Commit the archive. Open a PR to main.
 
 ### Phase 2a — Propose the change (15 min)
-
-Create a new OpenSpec change:
 
 ```
 /opsx-propose mysql-migration
 ```
 
 When prompted, describe the change:
-> "Migrate the Employee persistence layer from in-memory HashMap to MySQL using JPA. Add @Entity to Employee, create a JPA repository, wire it into the service, add datasource config, and write integration tests with Testcontainers."
+> "Migrate the Employee persistence layer from in-memory HashMap to MySQL using JPA. Add @Entity to Employee, create a JPA repository implementing the existing EmployeeRepository interface, wire it into the service via Spring's bean mechanism, add datasource config, and write integration tests using Testcontainers MySQLContainer with @DynamicPropertySource. The EmployeeRepository interface and all service/controller code must remain unchanged."
 
 Review the generated artifacts:
-- `openspec/changes/mysql-migration/proposal.md` — what and why
-- `openspec/changes/mysql-migration/design.md` — how (JPA, repository pattern, Testcontainers)
-- `openspec/changes/mysql-migration/tasks.md` — step-by-step implementation
+- `openspec/changes/mysql-migration/proposal.md`
+- `openspec/changes/mysql-migration/design.md`
+- `openspec/changes/mysql-migration/tasks.md`
 
-Edit the artifacts if needed. The proposal is the contract between you and the AI.
+**Read them.** You are the author. opencode is the typist. If anything is wrong or missing, edit before moving on. Commit the artifacts.
 
-### Phase 2b — Implement the change (40 min)
+### Phase 2b — Implement the change (50 min)
 
 ```
 /opsx-apply mysql-migration
 ```
 
-opencode works through the tasks. The key implementation steps:
+opencode works through the tasks. Key things to verify as it goes:
 
-**JPA setup:**
-- Add `@Entity` and `@Id @GeneratedValue` to `Employee`
-- Create `EmployeeJpaRepository extends JpaRepository<Employee, Long>`
-- Update `EmployeeService` to use the JPA repository
-- Add `application.properties` datasource config
+- `Employee` gets `@Entity`, `@Id`, `@GeneratedValue` — and nothing else changes
+- New `EmployeeJpaRepository extends JpaRepository<Employee, Long>` is created
+- A new `JpaEmployeeRepository` adapter implements `EmployeeRepository` and delegates to `EmployeeJpaRepository`
+- `EmployeeController` and `EmployeeService` are **not touched**
+- JPA and MySQL dependencies in `build.gradle` are uncommented
+- `application.properties` datasource config is uncommented
 
-Dependencies already in `build.gradle` (uncomment when ready):
-```
-spring-boot-starter-data-jpa
-mysql-connector-j
-```
-
-**Integration tests:**
+Integration tests must cover at minimum:
 
 ```java
 @SpringBootTest(webEnvironment = RANDOM_PORT)
@@ -189,15 +190,11 @@ class EmployeeControllerIT {
 
     @Autowired TestRestTemplate http;
 
-    @Test
-    void createAndRetrieve() { ... }
-
-    @Test
-    void getUnknownReturns404() { ... }
+    @Test void createAndRetrieve() { ... }
+    @Test void getUnknownReturns404() { ... }
+    @Test void deleteAndConfirmGone() { ... }
 }
 ```
-
-Tests must cover at least: create → get, get unknown → 404, delete → get → 404.
 
 ```bash
 ./gradlew test
@@ -211,19 +208,17 @@ Once tests are green:
 /opsx-archive mysql-migration
 ```
 
-The change moves to `openspec/changes/archive/`. The artifacts are preserved — AI can reference them in future sessions.
+Commit. Open a PR to main.
 
 ### Debrief (15 min)
 
-Questions:
 - "What did opencode get right in the proposal on the first pass? What did you correct?"
-- "What happened when you changed a task description and re-ran apply?"
-- "What does the compiler error tell you that a test wouldn't?"
+- "Did `EmployeeController` or `EmployeeService` change? Why not?"
+- "What does the compiler tell you if the JPA adapter doesn't correctly implement `EmployeeRepository`?"
 
 **Points to land:**
-- The proposal is now the source of truth. The compiler enforces the contract, not discipline.
-- opencode wrote the implementation correctly *because* the tasks were precise.
-- The test verifies behaviour against a real database — the proposal verified the approach.
+- The `EmployeeRepository` interface is the contract. Persistence is an implementation detail behind it. The compiler enforced this — not discipline.
+- The proposal is now archived. The next change can build on it without re-explaining the codebase.
 
 ---
 
@@ -231,7 +226,7 @@ Questions:
 
 ### Goal
 
-Use the archived MySQL change as context to drive a second persistence migration — this time to DynamoDB.
+Use the archived MySQL change as context to drive a second persistence migration — to DynamoDB on LocalStack.
 
 ### Phase 3a — Propose the change (10 min)
 
@@ -240,9 +235,9 @@ Use the archived MySQL change as context to drive a second persistence migration
 ```
 
 Describe the change:
-> "Migrate the Employee persistence layer from MySQL/JPA to DynamoDB using the AWS SDK v2. Use LocalStack for local development. Replace EmployeeJpaRepository with a DynamoDbEmployeeRepository. Keep all controller and service code unchanged. Update tests to use LocalStackContainer."
+> "Migrate the Employee persistence layer from MySQL/JPA to DynamoDB using the AWS SDK v2. Use LocalStack for local development and testing. Replace the JPA implementation with a DynamoDbEmployeeRepository that implements the existing EmployeeRepository interface. Remove JPA and MySQL dependencies. Update integration tests to use LocalStackContainer. Keep all controller and service code unchanged."
 
-opencode can read the archived `mysql-migration` change for context — it knows what was done before and why.
+Review the proposal carefully before accepting. This is the moment to catch anything the AI gets wrong — or anything it gets interestingly right.
 
 ### Phase 3b — Implement the change (20 min)
 
@@ -250,12 +245,12 @@ opencode can read the archived `mysql-migration` change for context — it knows
 /opsx-apply dynamodb-migration
 ```
 
-Key implementation steps:
+Key things to verify:
 
-- Remove `spring-boot-starter-data-jpa` and `mysql-connector-j` from `build.gradle`
-- Add `software.amazon.awssdk:dynamodb` and `org.testcontainers:localstack`
-- Create `DynamoDbEmployeeRepository` implementing the same `EmployeeRepository` interface
-- Update `EmployeeControllerIT` to use `LocalStackContainer`
+- `spring-boot-starter-data-jpa` and `mysql-connector-j` removed from `build.gradle`
+- `software.amazon.awssdk:dynamodb` and `org.testcontainers:localstack` added
+- `DynamoDbEmployeeRepository` implements `EmployeeRepository`
+- `EmployeeControllerIT` updated to use `LocalStackContainer`:
 
 ```java
 @Container
@@ -268,7 +263,7 @@ static LocalStackContainer localstack =
 ./gradlew test
 ```
 
-Same tests. Same interface. Different database. Green.
+Same tests. Same `EmployeeRepository` interface. Different database.
 
 ### Phase 3c — Archive (5 min)
 
@@ -278,19 +273,17 @@ Same tests. Same interface. Different database. Green.
 
 ### The point
 
-> "opencode didn't need to re-understand the codebase. The archived MySQL change told it what the persistence layer looked like. It only had to solve the DynamoDB problem — which is what we actually wanted."
+> "opencode didn't need to re-understand the codebase. The archived MySQL change gave it the full context of what was built and why. It only had to solve the DynamoDB problem."
 
 ---
 
 ## Final Discussion (15 min)
 
-Three questions:
-
 1. **"When would you still vibe-code?"**
-   Let them draw the line. Prototypes, throwaway scripts, one-consumer internal tools are reasonable answers.
+   Prototypes, throwaway scripts, one-consumer internal tools. Let them draw the line.
 
 2. **"Who owns the specs in your team?"**
-   The specs live in `openspec/`, versioned in git. Who writes the first draft? Who approves changes? This is a process question.
+   The specs live in `openspec/`, versioned in git, reviewed in PRs. Who writes the first draft? Who approves changes?
 
 3. **"What changes about how you prompt opencode going forward?"**
-   Expected landing: lead with a structured change, not with a description. The proposal is the most precise prompt you can give for any infrastructure task.
+   Expected landing: lead with a structured change. The proposal is the most precise context you can give AI for any infrastructure task.
