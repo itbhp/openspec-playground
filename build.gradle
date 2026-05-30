@@ -20,11 +20,11 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // JPA + MySQL (used in Phase 1 — commented out until needed)
+    // JPA + MySQL (Act 2 — commented out until needed)
     // implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     // runtimeOnly 'com.mysql:mysql-connector-j'
 
-    // DynamoDB SDK v2 (used in Phase 2 — commented out until needed)
+    // DynamoDB SDK v2 (Act 3 — commented out until needed)
     // implementation 'software.amazon.awssdk:dynamodb:2.25.60'
     // implementation 'software.amazon.awssdk:url-connection-client:2.25.60'
 
