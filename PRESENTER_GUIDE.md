@@ -85,7 +85,7 @@ Use OpenSpec to structure a persistence migration from in-memory to MySQL, imple
 ### Phase 2a — Propose (let them work, then review as a group)
 
 The prompt participants use:
-> "Migrate the Employee persistence layer from in-memory HashMap to MySQL using JPA. Add @Entity to Employee, create a JPA repository implementing the existing EmployeeRepository interface, wire it into the service via Spring's bean mechanism, add datasource config, and write integration tests using Testcontainers MySQLContainer with @DynamicPropertySource. The EmployeeRepository interface and all service/controller code must remain unchanged."
+> "Migrate the Employee persistence layer from in-memory HashMap to MySQL using JPA, TestContainers for integration testing, contract must be maintained."
 
 **Key things to verify in their proposals:**
 - `Employee` gets `@Entity`, `@Id`, `@GeneratedValue` — and nothing else changes (no `@Table`, no `@Column`)
@@ -137,7 +137,7 @@ Use the archived MySQL change as context to drive a second persistence migration
 ### Phase 3a — Propose (10 min)
 
 The prompt participants use:
-> "Migrate the Employee persistence layer from MySQL/JPA to DynamoDB using the AWS SDK v2. Use LocalStack for local development and testing. Replace the JPA implementation with a DynamoDbEmployeeRepository that implements the existing EmployeeRepository interface. Remove JPA and MySQL dependencies. Update integration tests to use LocalStackContainer. Keep all controller and service code unchanged."
+> "Migrate the Employee persistence layer from MySQL/JPA to DynamoDB using the AWS SDK v2. Use LocalStack and LocalStackContainer for local development and testing. Keep all controller and service code unchanged."
 
 **Key things to verify in their proposals:**
 - `spring-boot-starter-data-jpa` and `mysql-connector-j` removed from `build.gradle`
