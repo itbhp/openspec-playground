@@ -3,7 +3,7 @@
 ## Project
 
 Workshop project for teaching **spec-driven development vs vibe coding**. Half-day format (3.5h), three acts:
-- **Act 1** (vibe coding): Improve the API with AI, no spec — experience inconsistency
+- **Act 1** (vibe coding): Write tests that would catch a broken persistence layer.
 - **Act 2** (spec v1): Write MySQL via JPA + Testcontainers
 - **Act 3** (spec v2): Refactor MySQL → DynamoDB using the spec as "persistent memory"
 
