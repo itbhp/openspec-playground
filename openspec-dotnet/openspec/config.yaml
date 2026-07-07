@@ -1,0 +1,41 @@
+schema: spec-driven
+
+context: |
+  Tech stack: .NET 8, ASP.NET Core Web API, Entity Framework Core 8 (Pomelo MySQL), Docker Compose
+  Root namespace: EmployeeApi
+
+  Architecture:
+  - IEmployeeRepository is a custom interface (not a DbContext/DbSet). Every persistence
+    implementation must implement it. Controller and service must never be modified during
+    persistence migrations.
+  - EmployeeService is a thin pass-through to the repository. No business logic there.
+  - EmployeesController handles HTTP concerns only. No persistence awareness.
+  - Wiring lives in Program.cs (built-in DI). Swap the IEmployeeRepository registration there.
+
+  Conventions:
+  - Plain POCO domain model. No EF Core attributes/Fluent mapping yet.
+  - EmployeeDto record only at the HTTP boundary.
+  - No DbContext exposed beyond the persistence layer. Always wrap with an adapter
+    implementing IEmployeeRepository.
+  - The in-memory repository is registered as a Singleton so state persists between requests.
+  - Integration tests use Docker Compose services (MySQL, LocalStack) with WebApplicationFactory.
+  - EF Core + Pomelo are installed and ready; entity mapping is decided during the kata.
+
+  Domain: Employee CRUD REST API. Fields: Id (int), FirstName, LastName, Email, Department.
+  Endpoint base: /employees
+
+  Active persistence: in-memory (InMemoryEmployeeRepository)
+  Planned migrations: MySQL/EF Core (Act 2), DynamoDB via AWS SDK for .NET (Act 3)
+
+rules:
+  proposal:
+    - Always state explicitly which files must NOT be modified
+    - Include a one-line summary of the active persistence implementation being replaced
+  design:
+    - Include a table of NuGet packages to add and remove
+    - State whether IEmployeeRepository changes — it almost never should
+  tasks:
+    - Each task must be independently verifiable (dotnet build or test)
+    - Persistence swap tasks must include: remove old impl, add new impl, update the
+      IEmployeeRepository registration in Program.cs, update tests
+
