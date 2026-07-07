@@ -1,0 +1,38 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Node.js 22, NestJS 11, MikroORM 6, TypeScript 5, Docker Compose
+  Module root: src/
+
+  Architecture:
+  - EmployeeRepository is a custom interface bound via the EMPLOYEE_REPOSITORY DI token
+    (not a MikroORM EntityRepository). Every persistence implementation must implement
+    this interface. Controller and service must never be modified during migrations.
+  - EmployeeService is a thin pass-through to the repository. No business logic there.
+  - EmployeeController handles HTTP concerns only. No persistence awareness.
+
+  Conventions:
+  - Plain classes with public fields. No ORM decorators on the model yet.
+  - No MikroORM repositories exposed beyond the persistence layer. Always wrap with an
+    adapter implementing EmployeeRepository, bound by the EMPLOYEE_REPOSITORY token in AppModule.
+  - Integration tests use Docker Compose services (MySQL, LocalStack) with Supertest.
+  - MikroORM is installed and ready; entity mapping strategy is decided during the kata.
+
+  Domain: Employee CRUD REST API. Fields: id (number), firstName, lastName, email, department.
+  Endpoint base: /employees
+
+  Active persistence: in-memory (InMemoryEmployeeRepository)
+  Planned migrations: MySQL/MikroORM (Act 2), DynamoDB via AWS SDK v3 (Act 3)
+
+rules:
+  proposal:
+    - Always state explicitly which files must NOT be modified
+    - Include a one-line summary of the active persistence implementation being replaced
+  design:
+    - Include a table of dependencies to add and dependencies to remove
+    - State whether EmployeeRepository interface changes — it almost never should
+  tasks:
+    - Each task must be independently verifiable (build check or test)
+    - Persistence swap tasks must include: remove old impl, add new impl, update the
+      EMPLOYEE_REPOSITORY binding in AppModule, update tests
+

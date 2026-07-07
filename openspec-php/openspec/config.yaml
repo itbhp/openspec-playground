@@ -1,0 +1,39 @@
+schema: spec-driven
+
+context: |
+  Tech stack: PHP 8.5, Symfony 8.1, Doctrine ORM, FrankenPHP 1.12, Docker Compose
+  Namespace root: App\
+
+  Architecture:
+  - EmployeeRepositoryInterface is a custom interface (not a Doctrine repository).
+    Every persistence implementation must implement this interface.
+    Controller and service must never be modified during persistence migrations.
+  - EmployeeService is a thin pass-through to the repository. No business logic lives there.
+  - EmployeeController handles HTTP concerns only. No persistence awareness.
+
+  Conventions:
+  - Plain PHP classes with getters and setters. No readonly properties on the model.
+  - No Doctrine repository interfaces exposed beyond the persistence layer.
+    Always wrap with an adapter implementing EmployeeRepositoryInterface.
+  - Integration tests use Docker Compose services (MySQL, LocalStack).
+    Tests must exercise the full HTTP stack (Symfony HttpClient or WebTestCase).
+  - ORM mapping strategy (attributes vs XML) is decided by each participant during the kata.
+  - Dependencies are already installed (Doctrine ORM, AWS SDK placeholder).
+
+  Domain: Employee CRUD REST API. Fields: id (int), firstName, lastName, email, department.
+  Endpoint base: /employees
+
+  Active persistence: in-memory (InMemoryEmployeeRepository)
+  Planned migrations: MySQL/Doctrine (Act 2), DynamoDB via AWS SDK (Act 3)
+
+rules:
+  proposal:
+    - Always state explicitly which files must NOT be modified
+    - Include a one-line summary of the active persistence implementation being replaced
+  design:
+    - Include a table of dependencies to add and dependencies to remove
+    - State whether EmployeeRepositoryInterface changes — it almost never should
+  tasks:
+    - Each task must be independently verifiable (syntax check or test)
+    - Persistence swap tasks must include: remove old impl, add new impl, update service binding, update tests
+

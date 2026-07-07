@@ -1,0 +1,52 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
+    ports:
+      - "${API_PORT:-5000}:5000"
+    volumes:
+      - .:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5000
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      ConnectionStrings__Default: "Server=mysql;Port=3306;Database=employee_db;User=kata;Password=kata"
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-employee_db}
+      MYSQL_USER: ${MYSQL_USER:-kata}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-kata}
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4569:4566"
+    environment:
+      SERVICES: dynamodb
+      DEFAULT_REGION: us-east-1
+    volumes:
+      - localstack_data:/var/lib/localstack
+
+volumes:
+  mysql_data:
+  localstack_data:
+

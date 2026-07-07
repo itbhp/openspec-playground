@@ -1,0 +1,40 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python 3.12, FastAPI, SQLAlchemy 2.0, Uvicorn, Docker Compose
+  Package root: app/
+
+  Architecture:
+  - EmployeeRepository is a custom ABC (not a SQLAlchemy session/repository). Every
+    persistence implementation must subclass it. Controller and service must never be
+    modified during persistence migrations.
+  - EmployeeService is a thin pass-through to the repository. No business logic there.
+  - EmployeeController (APIRouter) handles HTTP concerns only. No persistence awareness.
+  - Wiring lives in app/dependencies.py via FastAPI Depends. Swap the repository there.
+
+  Conventions:
+  - Plain dataclass domain model. No SQLAlchemy ORM mapping yet.
+  - Pydantic schemas (EmployeeIn/EmployeeOut) only at the HTTP boundary.
+  - No SQLAlchemy sessions exposed beyond the persistence layer. Always wrap with an
+    adapter implementing EmployeeRepository.
+  - Integration tests use Docker Compose services (MySQL, LocalStack) with httpx/TestClient.
+  - SQLAlchemy is installed and ready; entity mapping strategy is decided during the kata.
+
+  Domain: Employee CRUD REST API. Fields: id (int), first_name, last_name, email, department.
+  Endpoint base: /employees
+
+  Active persistence: in-memory (InMemoryEmployeeRepository)
+  Planned migrations: MySQL/SQLAlchemy (Act 2), DynamoDB via boto3 (Act 3)
+
+rules:
+  proposal:
+    - Always state explicitly which files must NOT be modified
+    - Include a one-line summary of the active persistence implementation being replaced
+  design:
+    - Include a table of dependencies to add and dependencies to remove
+    - State whether EmployeeRepository ABC changes — it almost never should
+  tasks:
+    - Each task must be independently verifiable (import check or test)
+    - Persistence swap tasks must include: remove old impl, add new impl, update the
+      get_employee_repository binding in dependencies.py, update tests
+
