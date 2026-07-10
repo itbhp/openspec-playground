@@ -46,3 +46,7 @@ dependencyManagement {
         mavenBom "org.testcontainers:testcontainers-bom:1.19.8"
     }
 }
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
