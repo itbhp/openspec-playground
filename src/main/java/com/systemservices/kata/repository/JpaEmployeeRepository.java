@@ -4,9 +4,9 @@ import com.systemservices.kata.model.Employee;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.stereotype.Repository;
 
-@Repository
+// Dormant: superseded by DynamoDbEmployeeRepository (Act 3). Kept for the repository
+// contract test suite (JpaEmployeeRepositoryTest) and as a reference for MySQL usage.
 public class JpaEmployeeRepository implements EmployeeRepository {
 
   private final SpringDataEmployeeJpaRepository jpaRepository;

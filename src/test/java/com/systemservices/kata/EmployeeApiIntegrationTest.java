@@ -10,24 +10,31 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// Exercises the app end-to-end through whichever EmployeeRepository is actually wired
+// in — currently DynamoDbEmployeeRepository (Act 3), the sole active @Repository bean.
+// JPA/DataSource autoconfiguration is off by default (application.properties).
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class EmployeeApiIntegrationTest {
 
   @Container
-  static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
+  static final LocalStackContainer LOCALSTACK =
+      new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.8.1"))
+          .withServices(LocalStackContainer.Service.DYNAMODB);
 
   @DynamicPropertySource
-  static void datasourceProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-    registry.add("spring.datasource.username", MYSQL::getUsername);
-    registry.add("spring.datasource.password", MYSQL::getPassword);
+  static void dynamoDbProperties(DynamicPropertyRegistry registry) {
+    registry.add(
+        "aws.dynamodb.endpoint",
+        () -> LOCALSTACK.getEndpointOverride(LocalStackContainer.Service.DYNAMODB).toString());
+    registry.add("aws.dynamodb.region", LOCALSTACK::getRegion);
   }
 
   @LocalServerPort
@@ -50,7 +57,7 @@ class EmployeeApiIntegrationTest {
   }
 
   @Test
-  void fullCrudLifecycle_persistsThroughMySql() {
+  void fullCrudLifecycle_persistsThroughDynamoDb() {
     ResponseEntity<Employee> created =
         restTemplate.postForEntity(url("/employees"), newEmployee(), Employee.class);
     assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);

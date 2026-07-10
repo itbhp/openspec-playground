@@ -38,7 +38,9 @@ services:
       - mysql_data:/var/lib/mysql
 
   localstack:
-    image: localstack/localstack
+    # Pinned to a community-edition tag: newer `latest`/2026.x images gate
+    # startup behind a Pro license/auth token even for community services.
+    image: localstack/localstack:3.8.1
     ports:
       - "4570:4566"
     environment:
