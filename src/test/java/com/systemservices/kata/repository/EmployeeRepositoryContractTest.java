@@ -24,6 +24,10 @@ public abstract class EmployeeRepositoryContractTest {
   @BeforeEach
   void setUp() {
     repository = createRepository();
+    // createRepository() may return a shared, Spring-managed singleton (e.g. a
+    // JPA-backed bean) rather than a fresh instance, so drain any leftover rows
+    // via the contract itself before each test.
+    repository.findAll().forEach(e -> repository.deleteById(e.getId()));
   }
 
   private static Employee newEmployee(String firstName) {

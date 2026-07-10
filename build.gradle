@@ -8,8 +8,9 @@ group = 'com.systemservices.kata'
 version = '0.0.1-SNAPSHOT'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 repositories {
@@ -20,9 +21,9 @@ dependencies {
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // JPA + MySQL (Act 2 — commented out until needed)
-    // implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    // runtimeOnly 'com.mysql:mysql-connector-j'
+    // JPA + MySQL (Act 2)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.mysql:mysql-connector-j'
 
     // DynamoDB SDK v2 (Act 3 — commented out until needed)
     // implementation 'software.amazon.awssdk:dynamodb:2.25.60'
@@ -35,7 +36,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // Test
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
     testImplementation 'org.testcontainers:localstack'
@@ -43,10 +46,16 @@ dependencies {
 
 dependencyManagement {
     imports {
-        mavenBom "org.testcontainers:testcontainers-bom:1.19.8"
+        mavenBom "org.testcontainers:testcontainers-bom:1.21.4"
     }
 }
 
-tasks.named('test') {
+tasks.named('test', Test) {
     useJUnitPlatform()
+}
+
+// The plain jar (pre-repackaging) has no entry point and is never used —
+// only the Boot-repackaged jar is needed.
+tasks.named('jar', Jar) {
+    enabled = false
 }

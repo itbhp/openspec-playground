@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Repository
+// Dormant: superseded by JpaEmployeeRepository (Act 2). Kept for the repository
+// contract test suite and as a reference for future in-memory/dev usage.
 public class InMemoryEmployeeRepository implements EmployeeRepository {
 
   private final Map<Long, Employee> store = new ConcurrentHashMap<>();
