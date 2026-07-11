@@ -24,6 +24,28 @@ JPA required annotating `Employee` because Hibernate needs entity metadata on th
 **Id generation via a DynamoDB atomic counter, not UUIDs.**
 The contract (`EmployeeRepositoryContractTest`) requires `Long` ids, generated on save when absent, distinct across saves. DynamoDB has no auto-increment, so `DynamoDbEmployeeRepository` maintains a dedicated counter item (partition key `"EMPLOYEE_ID_SEQ"`) in the same table and increments it via `UpdateItem` with an `ADD` expression (`ReturnValues.UPDATED_NEW`), which DynamoDB guarantees is atomic under concurrent writers. Alternative considered: random UUIDs coerced into `Long` via hashing — rejected, since the contract's "successive new employees receive distinct ids" scenario is trivially satisfiable but hashing UUIDs into longs risks collisions and adds no value over an atomic counter for this workshop's scale.
 
+*Mechanics (`DynamoDbEmployeeRepository.nextId()`):*
+```java
+UpdateItemResponse response =
+    client.updateItem(
+        UpdateItemRequest.builder()
+            .tableName(TABLE_NAME)
+            .key(Map.of(KEY_ATTRIBUTE, AttributeValue.fromS(COUNTER_ID)))    // target the counter row
+            .updateExpression("ADD #v :incr")                               // "increment #v by :incr"
+            .expressionAttributeNames(Map.of("#v", COUNTER_VALUE_ATTRIBUTE))// #v -> "value"
+            .expressionAttributeValues(Map.of(":incr", AttributeValue.fromN("1"))) // :incr -> 1
+            .returnValues(ReturnValue.UPDATED_NEW)                          // hand back the new value
+            .build());
+return Long.parseLong(response.attributes().get(COUNTER_VALUE_ATTRIBUTE).n());
+```
+- The row with `id = "EMPLOYEE_ID_SEQ"` is a single reserved item that lives in the same table as employee rows and holds one attribute, `value`, which is the running counter. Because `"EMPLOYEE_ID_SEQ"` is not a valid decimal representation of any `Long`, it can never collide with a real employee id; `findAll()`'s `Scan` filters this row out explicitly before returning results (see the Risk below).
+- `updateExpression("ADD #v :incr")` is DynamoDB's atomic-increment primitive: `ADD` on a numeric attribute means "increment this number" (creating the attribute at that value if it doesn't exist yet), not "add a new attribute."
+- `#v` and `:incr` are placeholders required by DynamoDB's expression syntax — `#v` is an *expression attribute name* standing in for the literal attribute name `"value"` (attribute-name placeholders start with `#`, used because some real attribute names collide with DynamoDB reserved words), and `:incr` is an *expression attribute value* standing in for the literal number `1` (value placeholders start with `:`). The SDK requires both to be declared separately rather than inlined into the expression string.
+- `ReturnValue.UPDATED_NEW` tells DynamoDB to return the post-update value of the attributes the request touched, so the new counter value comes back on the same round-trip instead of requiring a separate read.
+- DynamoDB numbers are represented on the wire as strings regardless of the client-side type, so the response's `value` attribute is read via `.n()` (a `String`) and parsed into a `long`.
+- Atomicity: `ADD` is applied server-side as a single operation, so two concurrent `nextId()` calls are serialized by DynamoDB and always produce two distinct values — the same guarantee an in-process `AtomicLong` gives, reimplemented server-side since there's no single JVM holding the counter in memory.
+- `nextId()` is only invoked from `save()` when `employee.getId() == null`; on updates (id already present) it's skipped entirely and the existing id is reused, matching the "assign on create, preserve on update" behavior already established by `InMemoryEmployeeRepository` and `JpaEmployeeRepository`.
+
 **Single DynamoDB table, `employees`, partition key `id` (String). Counter lives in the same table as a special item, not a separate table.**
 Keeps infrastructure to "one table" for a workshop-sized app. Alternative considered: a separate `employee_counters` table — rejected as unnecessary operational overhead for one counter. **Correction made during implementation**: a DynamoDB table's partition key has one fixed type for every item, and the reserved counter item's key (`"EMPLOYEE_ID_SEQ"`) is non-numeric — so `id` must be typed `S` (String) at table creation, not `N` (Number) as originally planned. Employee ids are still `Long` in `Employee`/`EmployeeRepository`; the adapter stores/reads them as their decimal string representation (`String.valueOf(id)` / `Long.valueOf(item.get("id").s())`).
 
