@@ -17,13 +17,19 @@ public class DynamoDbConfig {
   @Bean
   public DynamoDbClient dynamoDbClient(
       @Value("${aws.dynamodb.endpoint:}") String endpoint,
-      @Value("${aws.dynamodb.region}") String region) {
+      @Value("${aws.dynamodb.region}") String region,
+      @Value("${aws.dynamodb.access-key-id:test}") String accessKeyId,
+      @Value("${aws.dynamodb.secret-access-key:test}") String secretAccessKey
+  ) {
     DynamoDbClientBuilder builder =
         DynamoDbClient.builder()
             .region(Region.of(region))
             .httpClientBuilder(UrlConnectionHttpClient.builder())
             .credentialsProvider(
-                StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
+                StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+                )
+            );
 
     if (!endpoint.isBlank()) {
       builder.endpointOverride(URI.create(endpoint));
